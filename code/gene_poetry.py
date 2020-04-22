@@ -99,30 +99,30 @@ class DataSet(object):
 
 #---------------------------------------RNN--------------------------------------#  
    
-input_data = tf.placeholder(tf.int32, [batch_size, None])  
-output_targets = tf.placeholder(tf.int32, [batch_size, None])  
+input_data = tf.compat.v1.placeholder(tf.int32, [batch_size, None])  
+output_targets = tf.compat.v1.placeholder(tf.int32, [batch_size, None])  
 # 定义RNN  
 def neural_network(model='lstm', rnn_size=128, num_layers=2):  
     if model == 'rnn':  
-        cell_fun = tf.nn.rnn_cell.BasicRNNCell  
+        cell_fun = tf.compat.v1.nn.rnn_cell.BasicRNNCell  
     elif model == 'gru':  
-        cell_fun = tf.nn.rnn_cell.GRUCell  
+        cell_fun = tf.compat.v1.nn.rnn_cell.GRUCell  
     elif model == 'lstm':  
-        cell_fun = tf.nn.rnn_cell.BasicLSTMCell  
+        cell_fun = tf.compat.v1.nn.rnn_cell.BasicLSTMCell  
    
     cell = cell_fun(rnn_size, state_is_tuple=True)  
-    cell = tf.nn.rnn_cell.MultiRNNCell([cell] * num_layers, state_is_tuple=True)  
+    cell = tf.compat.v1.nn.rnn_cell.MultiRNNCell([cell] * num_layers, state_is_tuple=True)  
    
     initial_state = cell.zero_state(batch_size, tf.float32)  
    
-    with tf.variable_scope('rnnlm'):  
-        softmax_w = tf.get_variable("softmax_w", [rnn_size, len(words)])  
-        softmax_b = tf.get_variable("softmax_b", [len(words)])  
+    with tf.compat.v1.variable_scope('rnnlm'):  
+        softmax_w = tf.compat.v1.get_variable("softmax_w", [rnn_size, len(words)])  
+        softmax_b = tf.compat.v1.get_variable("softmax_b", [len(words)])  
         with tf.device("/cpu:0"):  
-            embedding = tf.get_variable("embedding", [len(words), rnn_size])  
-            inputs = tf.nn.embedding_lookup(embedding, input_data)  
+            embedding = tf.compat.v1.get_variable("embedding", [len(words), rnn_size])  
+            inputs = tf.nn.embedding_lookup(params=embedding, ids=input_data)  
    
-    outputs, last_state = tf.nn.dynamic_rnn(cell, inputs, initial_state=initial_state, scope='rnnlm')  
+    outputs, last_state = tf.compat.v1.nn.dynamic_rnn(cell, inputs, initial_state=initial_state, scope='rnnlm')  
     output = tf.reshape(outputs,[-1, rnn_size])  
    
     logits = tf.matmul(output, softmax_w) + softmax_b  
@@ -141,15 +141,15 @@ def gen_poetry():
         return words[sample]  
    
     _, last_state, probs, cell, initial_state = neural_network()
-    Session_config = tf.ConfigProto(allow_soft_placement = True)
+    Session_config = tf.compat.v1.ConfigProto(allow_soft_placement = True)
     Session_config.gpu_options.allow_growth=True 
    
-    with tf.Session(config=Session_config) as sess: 
+    with tf.compat.v1.Session(config=Session_config) as sess: 
         with tf.device('/gpu:1'): 
             
-            sess.run(tf.initialize_all_variables())  
+            sess.run(tf.compat.v1.initialize_all_variables())  
        
-            saver = tf.train.Saver(tf.all_variables())  
+            saver = tf.compat.v1.train.Saver(tf.compat.v1.all_variables())  
             saver.restore(sess, 'model/poetry.module-99')  
        
             state_ = sess.run(cell.zero_state(1, tf.float32))  

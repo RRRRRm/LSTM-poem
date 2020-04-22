@@ -14,7 +14,7 @@ with open(poetry_file, "r") as f:
 
     for line in f:
         try:
-            #line = line.decode("UTF-8")
+            # line = line.decode("UTF-8")
             line = line.strip(u"\n")
             title, content = line.strip(u" ").split(u":")
             content = content.replace(u" ", u"")
@@ -44,6 +44,7 @@ for poetry in poetrys:
 counter = collections.Counter(all_words)
 count_pairs = sorted(counter.items(), key=lambda x: -x[1])
 words, _ = zip(*count_pairs)
+print(words)
 
 # 取前多少个常用字
 words = words[: len(words)] + (" ",)
@@ -105,30 +106,30 @@ class DataSet(object):
 
 # ---------------------------------------RNN--------------------------------------#
 
-input_data = tf.placeholder(tf.int32, [batch_size, None])
-output_targets = tf.placeholder(tf.int32, [batch_size, None])
+input_data = tf.compat.v1.placeholder(tf.int32, [batch_size, None])
+output_targets = tf.compat.v1.placeholder(tf.int32, [batch_size, None])
 # 定义RNN
 def neural_network(model="lstm", rnn_size=128, num_layers=2):
     if model == "rnn":
-        cell_fun = tf.nn.rnn_cell.BasicRNNCell
+        cell_fun = tf.compat.v1.nn.rnn_cell.BasicRNNCell
     elif model == "gru":
-        cell_fun = tf.nn.rnn_cell.GRUCell
+        cell_fun = tf.compat.v1.nn.rnn_cell.GRUCell
     elif model == "lstm":
-        cell_fun = tf.nn.rnn_cell.BasicLSTMCell
+        cell_fun = tf.compat.v1.nn.rnn_cell.BasicLSTMCell
 
     cell = cell_fun(rnn_size, state_is_tuple=True)
-    cell = tf.nn.rnn_cell.MultiRNNCell([cell] * num_layers, state_is_tuple=True)
+    cell = tf.compat.v1.nn.rnn_cell.MultiRNNCell([cell] * num_layers, state_is_tuple=True)
 
     initial_state = cell.zero_state(batch_size, tf.float32)
 
-    with tf.variable_scope("rnnlm"):
-        softmax_w = tf.get_variable("softmax_w", [rnn_size, len(words)])
-        softmax_b = tf.get_variable("softmax_b", [len(words)])
+    with tf.compat.v1.variable_scope("rnnlm"):
+        softmax_w = tf.compat.v1.get_variable("softmax_w", [rnn_size, len(words)])
+        softmax_b = tf.compat.v1.get_variable("softmax_b", [len(words)])
         with tf.device("/cpu:0"):
-            embedding = tf.get_variable("embedding", [len(words), rnn_size])
-            inputs = tf.nn.embedding_lookup(embedding, input_data)
+            embedding = tf.compat.v1.get_variable("embedding", [len(words), rnn_size])
+            inputs = tf.nn.embedding_lookup(params=embedding, ids=input_data)
 
-    outputs, last_state = tf.nn.dynamic_rnn(
+    outputs, last_state = tf.compat.v1.nn.dynamic_rnn(
         cell, inputs, initial_state=initial_state, scope="rnnlm"
     )
     output = tf.reshape(outputs, [-1, rnn_size])
@@ -146,7 +147,7 @@ def load_model(sess, saver, ckpt_path):
         return int(latest_ckpt[latest_ckpt.rindex("-") + 1 :])
     else:
         print("building model from scratch")
-        sess.run(tf.global_variables_initializer())
+        sess.run(tf.compat.v1.global_variables_initializer())
         return -1
 
 
@@ -160,28 +161,28 @@ def train_neural_network():
         [tf.ones_like(targets, dtype=tf.float32)],
         len(words),
     )
-    cost = tf.reduce_mean(loss)
+    cost = tf.reduce_mean(input_tensor=loss)
     learning_rate = tf.Variable(0.0, trainable=False)
-    tvars = tf.trainable_variables()
-    grads, _ = tf.clip_by_global_norm(tf.gradients(cost, tvars), 5)
+    tvars = tf.compat.v1.trainable_variables()
+    grads, _ = tf.clip_by_global_norm(tf.gradients(ys=cost, xs=tvars), 5)
     # optimizer = tf.train.GradientDescentOptimizer(learning_rate)
-    optimizer = tf.train.AdamOptimizer(learning_rate)
+    optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate)
     train_op = optimizer.apply_gradients(zip(grads, tvars))
 
-    Session_config = tf.ConfigProto(allow_soft_placement=True)
+    Session_config = tf.compat.v1.ConfigProto(allow_soft_placement=True)
     Session_config.gpu_options.allow_growth = True
 
     trainds = DataSet(len(poetrys_vector))
 
-    with tf.Session(config=Session_config) as sess:
+    with tf.compat.v1.Session(config=Session_config) as sess:
         with tf.device("/gpu:2"):
-            sess.run(tf.initialize_all_variables())
+            sess.run(tf.compat.v1.initialize_all_variables())
 
-            saver = tf.train.Saver(tf.all_variables())
+            saver = tf.compat.v1.train.Saver(tf.compat.v1.all_variables())
             last_epoch = load_model(sess, saver, "model/")
 
             for epoch in range(last_epoch + 1, 100):
-                sess.run(tf.assign(learning_rate, 0.002 * (0.97 ** epoch)))
+                sess.run(tf.compat.v1.assign(learning_rate, 0.002 * (0.97 ** epoch)))
                 # sess.run(tf.assign(learning_rate, 0.01))
 
                 all_loss = 0.0

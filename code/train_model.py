@@ -14,7 +14,7 @@ with open(poetry_file, "r") as f:
 
     for line in f:
         try:
-            #line = line.decode("UTF-8")
+            # line = line.decode("UTF-8")
             line = line.strip(u"\n")
             title, content = line.strip(u" ").split(u":")
             content = content.replace(u" ", u"")
@@ -44,6 +44,7 @@ for poetry in poetrys:
 counter = collections.Counter(all_words)
 count_pairs = sorted(counter.items(), key=lambda x: -x[1])
 words, _ = zip(*count_pairs)
+print(words)
 
 # 取前多少个常用字
 words = words[: len(words)] + (" ",)
